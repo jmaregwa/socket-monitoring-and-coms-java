@@ -1,0 +1,379 @@
+
+
+SET TERM ^^ ;
+CREATE PROCEDURE P_POS_LOGIN (
+  POSID VarChar(10), 
+  USER_NAME VarChar(20), 
+  PASS_WORD VarChar(20))
+ returns (
+  LOGINSTATUS VarChar(100)) AS
+BEGIN
+  SUSPEND;
+END ^^
+SET TERM ; ^^
+SET TERM ^^ ;
+ALTER PROCEDURE P_POS_LOGIN (
+  POSID VarChar(10), 
+  USER_NAME VarChar(20), 
+  PASS_WORD VarChar(20))
+ returns (
+  LOGINSTATUS VarChar(100)) AS 
+/*
+  You can change this template in the template editor:
+  File | Preferences | Object Templates
+
+  Procedure:
+
+  Author   : , 
+  Date     : 12/08/2014 14:56:31
+  Purpose  :
+  Params
+  ------
+  <param>  : <purpose>
+*/
+begin
+  /* code LOGINSTATUS='|STX|' +  POSID + "|PA|ERROR|DB_ERROR|0|ETX|\r\n\r\n\r\n";  */        
+      if (USER_NAME='jane') then
+         LOGINSTATUS='|STX|' ||  POSID || '|PA|TRUE|Jane J|ETX|\r\n\r\n\r\n';
+      else 
+       LOGINSTATUS='|STX|' ||  POSID || '|PA|FALSE|Unknown User|ETX|\r\n\r\n\r\n';
+       
+       suspend; 
+end ^^
+SET TERM ; ^^
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SET TERM ^^ ;
+CREATE PROCEDURE P_POS_PAYMENT (
+  EVENTCODE VarChar(30), 
+  POSDEVICE VarChar(5), 
+  NUMPLATE VarChar(20), 
+  CARDNO VarChar(30), 
+  CARDDATETIME VarChar(30), 
+  AMOUNTPAID VarChar(10), 
+  PAYMODE VarChar(30), 
+  REF_NO VarChar(20))
+ returns (
+  PAYRESULT VarChar(100)) AS
+BEGIN
+  SUSPEND;
+END ^^
+SET TERM ; ^^
+SET TERM ^^ ;
+ALTER PROCEDURE P_POS_PAYMENT (
+  EVENTCODE VarChar(30), 
+  POSDEVICE VarChar(5), 
+  NUMPLATE VarChar(20), 
+  CARDNO VarChar(30), 
+  CARDDATETIME VarChar(30), 
+  AMOUNTPAID VarChar(10), 
+  PAYMODE VarChar(30), 
+  REF_NO VarChar(20))
+ returns (
+  PAYRESULT VarChar(100)) AS 
+/*
++ DEV_ID + "','" + NUMPLATE +  "','" + CARDNO +  "','" + allDate +  "','" + AMOUNTPAID  + "','" + PAYMODE + "')");
+  You can change this template in the template editor:
+  File | Preferences | Object Templates
+  Procedure:
+               P_POS_Payment
+  Author   : evanson nganga , 
+  Date     : 7/31/2014 16:46:09 PM
+  Purpose  : Check Ticket status at exit point using Pos Device.
+  Params
+  ------  
+  |STX|PS|NUMPLATE|CARDNO|CARDDATETIME|TERMINALID|AMOUNT|PAYMODE|ETX|
+  <param>  : <purpose>
+*/
+declare variable TRANSID INT;
+declare variable INOUT int;
+declare variable timenow timestamp;
+declare variable TIMEOUT timestamp;
+
+
+  
+begin               
+
+
+/*|STX|PS|STATE|DETAILS|ETX| */
+PAYRESULT='|STX|PS|ERROR|UNABLE TO PROCESS|ETX|\r\n\r\n\r\n';
+TRANSID=-1;         
+
+select current_timestamp from rdb$database into timenow;
+
+  
+
+select TRANS_ID,in_out,timeout from customertrans where recieptno = :carddatetime  and trans_id = (select max(trans_id) from customertrans where recieptno = :carddatetime) INTO :TRANSID,:INOUT,:TIMEOUT;
+
+if (TRANSID=-1) then
+begin
+   PAYRESULT='|STX|' || eventcode || '|ERROR|FOREIGN|ETX|\r\n\r\n\r\n';
+   suspend;
+end
+
+ 
+
+IF (INOUT=0) THEN
+begin
+   PAYRESULT='|STX|' || eventcode || '|ERROR|USED. EXITED ON ' || TIMEOUT || '|ETX|\r\n\r\n\r\n';
+   suspend;
+   end
+ELSE IF (INOUT=1) THEN
+begin
+      /* check if amount being paid is ok */
+      
+      UPDATE customertrans SET IN_OUT='0',timeout=CURRENT_time,EXITDATE=CURRENT_DATE,STATIONOUTNO= :POSDEVICE where TRANS_ID = :TRANSID;     
+      PAYRESULT='|STX|' || eventcode || '|OK|SUCCESSFULLY SAVED|ETX|\r\n\r\n\r\n'; 
+           
+      
+end
+end ^^
+SET TERM ; ^^
+
+
+
+
+
+
+
+
+
+
+
+
+SET TERM ^^ ;
+CREATE PROCEDURE P_POS_PROCESS (
+  EVENTCODE VarChar(10), 
+  POSDEVICE VarChar(20), 
+  NUMPLATE VarChar(10), 
+  CARDNO VarChar(10), 
+  CARDDATETIME VarChar(20), 
+  CARDDATETIMEF VarChar(20))
+ returns (
+  EXITRESULT VarChar(255)) AS
+BEGIN
+  SUSPEND;
+END ^^
+SET TERM ; ^^
+SET TERM ^^ ;
+ALTER PROCEDURE P_POS_PROCESS (
+  EVENTCODE VarChar(10), 
+  POSDEVICE VarChar(20), 
+  NUMPLATE VarChar(10), 
+  CARDNO VarChar(10), 
+  CARDDATETIME VarChar(20), 
+  CARDDATETIMEF VarChar(20))
+ returns (
+  EXITRESULT VarChar(255)) AS 
+/*
+,'" + DEV_ID + "','" + NUMPLATE +  "','" + CARDNO +  "','" + allDate +  "')")
+  You can change this template in the template editor:
+  File | Preferences | Object Templates
+
+  Procedure:
+               P_POS_PROCESS
+  Author   : evanson nganga , 
+  Date     : 7/31/2014 16:46:09 PM
+  Purpose  : Check Ticket status at exit point using Pos Device.
+  Params
+  ------  
+  |STX|PS|NUMPLATE|CARDNO|CARDDATETIME|TERMINALID|AMOUNT|PAYMODE|ETX|
+  <param>  : <purpose>
+*/
+declare variable TRANSID INT;
+declare variable INOUT int;
+declare variable GRACE int;
+declare variable dayofweek integer;
+declare variable amountopay integer;
+declare variable CASHIER VARCHAR(50);
+declare variable TICKNUM VARCHAR(50);
+declare variable freetimeparkingdays VARCHAR(50);
+DECLARE VARIABLE PAYTIME timestamp;
+DECLARE VARIABLE TIMEENTERED timestamp;
+declare variable timenow timestamp;
+declare variable todayisafreeday integer;
+declare variable minutes integer;
+declare variable freeminutes integer;
+declare variable amosec float;
+declare variable freetimestart timestamp;
+declare variable freetimestartlessfree timestamp;
+declare variable freetimestop timestamp;
+declare variable freetimestarttmp time;
+declare variable freetimestoptmp time;
+declare variable tmptnow time;
+declare variable cardnofilter varchar(255);
+declare variable numplatefilter varchar(255);
+declare variable carddatefilter varchar(255);
+declare variable strfilter varchar(255);
+
+ 
+  
+begin               
+
+GRACE=30;
+freetimestarttmp='00:00:00';
+freetimestoptmp='23:59:59';
+freetimeparkingdays='8';       /*  */
+freeminutes=0;
+carddatefilter='1=1';
+numplatefilter='1=1';
+cardnofilter='1=1';
+
+/*|STX|PC|STATE|DETAILS|CHARGE|ETX| */
+EXITRESULT='|STX|' || eventcode || '|ERROR|UNABLE TO PROCESS|0|ETX|\r\n\r\n\r\n';
+
+select current_time from rdb$database into tmptnow;
+select  dateadd ((-1*:freeminutes) minute to current_time)    FROM RDB$DATABASE into freetimestartlessfree;  
+select current_date || ' ' || :freetimestarttmp  FROM RDB$DATABASE into freetimestart ;
+select  current_date || ' ' || :freetimestoptmp   FROM RDB$DATABASE into freetimestop;   
+
+ todayisafreeday=0;   
+
+if (freetimestoptmp<freetimestarttmp and tmptnow > freetimestoptmp) then /*24 hr crossover */
+
+begin
+   select current_date || ' ' || :freetimestarttmp  FROM RDB$DATABASE into freetimestart ;
+   select  dateadd (1 day to current_date)  || ' ' || :freetimestoptmp   FROM RDB$DATABASE into freetimestop;   
+end
+ 
+              
+select EXTRACT(WEEKDAY from CURRENT_DATE) as DoW FROM RDB$DATABASE into dayofweek;              
+select  '1'  from  RDB$DATABASE where :freetimeparkingdays like  :dayofweek  into todayisafreeday;
+if (todayisafreeday !=1) then
+   todayisafreeday=0;
+
+TRANSID=-1;
+          
+
+select current_timestamp from rdb$database into timenow;
+
+/*if (:carddatetime <> '') then
+    filter='  recieptno = ' || :carddatetime;
+  carddatefilter='1=1';
+numplatefilter='1=1';
+cardnofilter='1=1';
+
+*/ 
+
+     if (:carddatetime <> '') then
+         carddatefilter = '  recieptno = ' || :carddatetime;
+     
+     if (:carddatetime <> '') then
+         numplatefilter = '  CARREGNO = ' || :NUMPLATE;
+     
+     if (:carddatetime <> '') then
+         cardnofilter = '  CARDNO = ' || :CARDNO;
+      
+strfilter = carddatefilter || ' and ' || numplatefilter || ' and ' ||   cardnofilter;   
+select TRANS_ID,TIMEIN, in_out,COALESCE(CASHIER_NAME,'xx'),timeout,'AUTOEXIT' || recieptno from customertrans where  cardno=:CARDNO and  recieptno = :carddatetime and trans_id = (select max(trans_id) from customertrans where  cardno=:CARDNO and recieptno = :carddatetime) INTO :TRANSID,:TIMEENTERED,:INOUT,:CASHIER,PAYTIME,TICKNUM;
+
+if (TRANSID=-1) then
+begin
+   
+   EXITRESULT='|STX|' || eventcode || '|ERROR|FOREIGN|0|ETX|\r\n\r\n\r\n';
+   suspend;
+end
+
+
+
+IF (INOUT=0) THEN
+begin
+   EXITRESULT='|STX|' || eventcode || '|ERROR|USED|0|ETX|\r\n\r\n\r\n';
+   suspend;
+   end
+ELSE IF (INOUT=1) THEN
+begin
+     
+     if (todayisafreeday=1) then
+        begin     
+            UPDATE customertrans SET timeout=CURRENT_time,EXITDATE=CURRENT_DATE,STATIONOUTNO= :POSDEVICE where TRANS_ID = :TRANSID;
+               EXITRESULT='|STX|' || eventcode || '|OK|FREE DAY|0|ETX|\r\n\r\n\r\n'; 
+       suspend;
+      end
+
+     IF (CASHIER='xx') THEN     
+     /*not paid. we check if its shoild bein free time        */
+        /*AGA KHAN */
+        if (todayisafreeday=1) THEN
+           BEGIN   
+            UPDATE customertrans SET timeout=CURRENT_time,EXITDATE=CURRENT_DATE,STATIONOUTNO= :POSDEVICE where TRANS_ID = :TRANSID;
+              EXITRESULT='|STX|' || eventcode || '|OK|FREE DAY|0|ETX|\r\n\r\n\r\n'; /* free parking day */
+              suspend;
+           END
+         ELSE   
+           BEGIN              
+      amosec = timenow-TIMEENTERED;
+      minutes = amosec*60*24;
+      minutes = ABS(minutes);      
+      if  (minutes <= freeminutes) THEN      /*FREE time */
+              BEGIN    
+                UPDATE customertrans SET timeout=CURRENT_time,EXITDATE=CURRENT_DATE,STATIONOUTNO= :POSDEVICE where TRANS_ID = :TRANSID;
+                EXITRESULT='|STX|' || eventcode || '|OK|PAID FOR |0|ETX|\r\n\r\n\r\n';  
+                suspend;
+             END
+      else /* > 30 min. we check time to be ebwteen  FREE TIME */    
+            if (freetimestart < timenow and freetimestop > timenow and ( minutes < 750)) then /*less than 12 hrs              */
+                 begin      /*will be free. but we check if the client entered before the freetime */
+                        if (TIMEENTERED < freetimestart)  then   /* aliingia kitambo.alipee */
+                             
+                        begin
+                           
+                                select amount from CALCPARKINGFEE('C',:minutes) into :amountopay;                   
+                                EXITRESULT='|STX|' || eventcode || '|ERROR|UNVALIDATED|' ||  :amountopay || '| Duration : ' || :minutes ||  'ETX|\r\n\r\n\r\n';  
+                                suspend;
+                        end
+                    else
+                         begin    
+                           UPDATE customertrans SET timeout=CURRENT_time,EXITDATE=CURRENT_DATE,STATIONOUTNO= :POSDEVICE where TRANS_ID = :TRANSID;
+                                  EXITRESULT='|STX|' || eventcode || '|OK|PAID FOR |0|ETX|\r\n\r\n\r\n'; 
+                                  suspend;    
+                       end
+                 end  
+              else                                                    
+                            select amount from CALCPARKINGFEE('C',:minutes) into :amountopay;                   
+                            EXITRESULT='|STX|' || eventcode || '|ERROR|UNVALIDATED|' ||  :amountopay || '| Duration : ' || :minutes ||  'ETX|\r\n\r\n\r\n';  
+                    suspend;
+           END
+           
+     else   /* ITS paid. for . we check grace */ 
+     begin
+      amosec = timenow-PAYTIME;
+      minutes = amosec*60*24;
+      minutes = ABS(minutes);      
+      if  (minutes < 30) THEN    
+              BEGIN    
+       UPDATE customertrans SET timeout=CURRENT_time,EXITDATE=CURRENT_DATE,STATIONOUTNO= :POSDEVICE where TRANS_ID = :TRANSID; 
+           EXITRESULT='|STX|' || eventcode || '|OK|PAID FOR |0|ETX|\r\n\r\n\r\n'; 
+           suspend;
+             END
+      else
+           begin
+                   select amount from CALCPARKINGFEE('C',:minutes) into :amountopay;                   
+                   EXITRESULT='|STX|' || eventcode || '|ERROR|GRACE|' ||  :amountopay || '|ETX|\r\n\r\n\r\n';  
+           SUSPEND;  
+           end
+      end                
+      
+      
+end
+end ^^
+SET TERM ; ^^
+
